@@ -5,7 +5,7 @@
 
 import fs from 'node:fs'
 import { Readable } from 'node:stream'
-import { finished } from 'node:stream/promises'
+import { pipeline } from 'node:stream/promises'
 import { type Request, type Response, type NextFunction } from 'express'
 
 import * as security from '../lib/insecurity'
@@ -21,13 +21,17 @@ export function profileImageUrlUpload () {
       const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
       if (loggedInUser) {
         try {
-          const response = await fetch(url)
+          const parsedUrl = new URL(url)
+          if (!['http:', 'https:'].includes(parsedUrl.protocol) || /^(localhost|\[.*\]|0\.0\.0\.0|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)|\.(local|internal|localdomain)$/i.test(parsedUrl.hostname)) {
+            throw new Error('url points to a blocked or internal destination')
+          }
+          const response = await fetch(parsedUrl, { redirect: 'error' })
           if (!response.ok || !response.body) {
             throw new Error('url returned a non-OK status code or an empty body')
           }
           const ext = ['jpg', 'jpeg', 'png', 'svg', 'gif'].includes(url.split('.').slice(-1)[0].toLowerCase()) ? url.split('.').slice(-1)[0].toLowerCase() : 'jpg'
           const fileStream = fs.createWriteStream(`frontend/dist/frontend/assets/public/images/uploads/${loggedInUser.data.id}.${ext}`, { flags: 'w' })
-          await finished(Readable.fromWeb(response.body as any).pipe(fileStream))
+          await pipeline(Readable.fromWeb(response.body as any), fileStream)
           const user = await UserModel.findByPk(loggedInUser.data.id)
           await user?.update({ profileImage: `/assets/public/images/uploads/${loggedInUser.data.id}.${ext}` })
         } catch (error) {
