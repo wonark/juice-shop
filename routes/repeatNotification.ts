@@ -8,7 +8,13 @@ import { type Request, type Response } from 'express'
 
 export function repeatNotification () {
   return ({ query }: Request, res: Response) => {
-    const challengeName: string = decodeURIComponent(query.challenge as string)
+    let challengeName: string
+    try {
+      challengeName = decodeURIComponent(query.challenge as string)
+    } catch {
+      res.sendStatus(400)
+      return
+    }
     const challenge = challengeUtils.findChallengeByName(challengeName)
 
     if (challenge?.solved) {
