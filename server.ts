@@ -340,10 +340,18 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
 
   app.use(express.urlencoded({ extended: true }))
   /* File Upload */
-  app.post('/file-upload', uploadToMemory.single('file'), ensureFileIsPassed, metrics.observeFileUploadMetricsMiddleware(), checkUploadSize, checkFileType, handleZipFileUpload, handleXmlUpload, handleYamlUpload)
-  app.post('/profile/image/file', uploadToMemory.single('file'), ensureFileIsPassed, metrics.observeFileUploadMetricsMiddleware(), utils.asyncHandler(profileImageFileUpload()))
-  app.post('/profile/image/url', uploadToMemory.single('file'), utils.asyncHandler(profileImageUrlUpload()))
-  app.post('/rest/memories', uploadToDisk.single('image'), ensureFileIsPassed, security.appendUserId(), metrics.observeFileUploadMetricsMiddleware(), utils.asyncHandler(addMemory()))
+  // Wrap multer so parsing errors are caught and handed to the error handler instead of crashing the server
+  const safeUpload = (upload: (req: Request, res: Response, cb: (err?: any) => void) => void) => (req: Request, res: Response, next: NextFunction) => {
+    try {
+      upload(req, res, (err?: any) => { err ? next(err) : next() })
+    } catch (err) {
+      next(err)
+    }
+  }
+  app.post('/file-upload', safeUpload(uploadToMemory.single('file') as any), ensureFileIsPassed, metrics.observeFileUploadMetricsMiddleware(), checkUploadSize, checkFileType, handleZipFileUpload, handleXmlUpload, handleYamlUpload)
+  app.post('/profile/image/file', safeUpload(uploadToMemory.single('file') as any), ensureFileIsPassed, metrics.observeFileUploadMetricsMiddleware(), utils.asyncHandler(profileImageFileUpload()))
+  app.post('/profile/image/url', safeUpload(uploadToMemory.single('file') as any), utils.asyncHandler(profileImageUrlUpload()))
+  app.post('/rest/memories', safeUpload(uploadToDisk.single('image') as any), ensureFileIsPassed, security.appendUserId(), metrics.observeFileUploadMetricsMiddleware(), utils.asyncHandler(addMemory()))
 
   app.use(express.text({ type: '*/*' }))
   app.use(function jsonParser (req: Request, res: Response, next: NextFunction) {
