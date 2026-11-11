@@ -16,7 +16,14 @@ const globalWithSocketIO = global as typeof globalThis & {
 }
 
 const registerWebsocketEvents = (server: any) => {
-  const io = new Server(server, { cors: { origin: 'http://localhost:4200' } })
+  const io = new Server(server, {
+    cors: { origin: 'http://localhost:4200' },
+    allowRequest: (req: any, callback: (err: string | null | undefined, success: boolean) => void) => {
+      const origin: string | undefined = req.headers.origin
+      const allowed = origin === undefined || origin === 'http://localhost:4200' || origin.replace(/^https?:\/\//, '') === req.headers.host
+      callback(null, allowed)
+    }
+  })
   globalWithSocketIO.io = io
 
   io.on('connection', (socket: any) => {
