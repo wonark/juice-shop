@@ -105,7 +105,6 @@ router.post('/', (req: Request<Record<string, unknown>, Record<string, unknown>,
         const isForbiddenFile: boolean = (filePath.includes('ftp') || filePath.includes('ctf.key') || filePath.includes('encryptionkeys'))
         if (!isForbiddenFile) {
           res.render('dataErasureResult', {
-            ...req.body,
             ...themeVars
           }, (error, html) => {
             if (!html || error) {
@@ -121,7 +120,6 @@ router.post('/', (req: Request<Record<string, unknown>, Record<string, unknown>,
         }
       } else {
         res.render('dataErasureResult', {
-          ...req.body,
           ...themeVars
         })
       }
