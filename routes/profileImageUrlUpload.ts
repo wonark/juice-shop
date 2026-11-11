@@ -21,6 +21,10 @@ export function profileImageUrlUpload () {
       const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
       if (loggedInUser) {
         try {
+          const target = new URL(url)
+          if (!['http:', 'https:'].includes(target.protocol) || /^(localhost$|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|0\.|\[)|\.(local|internal)$/i.test(target.hostname)) {
+            throw new Error('blocked destination for profile image url')
+          }
           const response = await fetch(url)
           if (!response.ok || !response.body) {
             throw new Error('url returned a non-OK status code or an empty body')
