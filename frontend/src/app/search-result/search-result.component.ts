@@ -100,7 +100,11 @@ export class SearchResultComponent implements OnDestroy, AfterViewInit {
         })
         const challenge: string = this.route.snapshot.queryParams.challenge // vuln-code-snippet hide-start
         if (challenge && this.route.snapshot.url.join('').match(/hacking-instructor/)) {
-          this.startHackingInstructor(decodeURIComponent(challenge))
+          try {
+            this.startHackingInstructor(decodeURIComponent(challenge))
+          } catch {
+            // malformed percent-escape in the challenge parameter: ignore it
+          }
         } // vuln-code-snippet hide-end
         this.cdRef.detectChanges()
       },
